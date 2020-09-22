@@ -10,7 +10,6 @@ void ipv4_to_string(char* buf, in_addr_t s_addr) {
     sprintf(buf, "%d.%d.%d.%d", bytes[0], bytes[1], bytes[2], bytes[3]);
 }
 
-
 void print_ethernet(libnet_ethernet_hdr ethernet_hdr) {
     printf("[ ethernet ]");
     printf("\n\tsrc: %x", ethernet_hdr.ether_shost[0]);
