@@ -35,7 +35,10 @@ void print_tcp(libnet_tcp_hdr tcp_hdr) {
 
 void print_data(const u_char* data) {
     printf("[ data ]");
-
+    for (int i = 0; i<16; i++) {
+        if (data[i] == EOF) return;
+        printf("%02x ", data[i]);
+    }
     printf("\n");
 }
 
