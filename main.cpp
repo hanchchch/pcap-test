@@ -4,7 +4,7 @@
 
 char* ipv4_to_string(in_addr_t s_addr) {
     u_char bytes[4];
-    thread static char buf[16];
+    static char buf[16];
 
     for (int i=0; i < 4; i++) bytes[i] = (s_addr >> (i*8)) & 0xff;
 
