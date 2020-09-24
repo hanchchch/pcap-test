@@ -2,12 +2,14 @@
 #include <stdio.h>
 #include <libnet.h>
 
-void ipv4_to_string(char* buf, in_addr_t s_addr) {
+char* ipv4_to_string(in_addr_t s_addr) {
     u_char bytes[4];
+    thread static char buf[16];
 
     for (int i=0; i < 4; i++) bytes[i] = (s_addr >> (i*8)) & 0xff;
 
     sprintf(buf, "%d.%d.%d.%d", bytes[0], bytes[1], bytes[2], bytes[3]);
+    return buf;
 }
 
 void print_ethernet(libnet_ethernet_hdr ethernet_hdr) {
@@ -20,19 +22,20 @@ void print_ethernet(libnet_ethernet_hdr ethernet_hdr) {
 }
 
 void print_ipv4(libnet_ipv4_hdr ipv4_hdr) {
-    char ipv4_src[16] = { 0, };
-    char ipv4_dst[16] = { 0, };
-
-    ipv4_to_string(ipv4_src, ipv4_hdr.ip_src.s_addr);
-    ipv4_to_string(ipv4_dst, ipv4_hdr.ip_dst.s_addr);
-    printf("[ ipv4 ]\n\tsrc: %s\n\tdst: %s\n", ipv4_src, ipv4_dst);
+    printf("[ ipv4 ]");
+    printf("\n\tsrc: %s", ipv4_to_string(ipv4_hdr.ip_src.s_addr));
+    printf("\n\tdst: %s\n", ipv4_to_string(ipv4_hdr.ip_dst.s_addr));
 }
 
 void print_tcp(libnet_tcp_hdr tcp_hdr) {
     printf("[ tcp ]");
-    
     printf("\n\tsrc: %d", ntohs(tcp_hdr.th_sport));
-    printf("\n\tdst: %d", ntohs(tcp_hdr.th_dport));
+    printf("\n\tdst: %d\n", ntohs(tcp_hdr.th_dport));
+}
+
+void print_data(const u_char* data) {
+    printf("[ data ]");
+
     printf("\n");
 }
 
@@ -71,13 +74,22 @@ int main(int argc, char* argv[]) {
         struct libnet_ipv4_hdr ipv4_hdr;
         struct libnet_tcp_hdr tcp_hdr;
 
-        memcpy(&ethernet_hdr, packet, 14);
-        memcpy(&ipv4_hdr, packet+14, 20);
-        memcpy(&tcp_hdr, packet+14+20, 20);
+        memcpy(&ethernet_hdr, packet, sizeof(libnet_ethernet_hdr));
+        memcpy(&ipv4_hdr, packet+sizeof(libnet_ethernet_hdr), sizeof(libnet_ipv4_hdr));
+        memcpy(&tcp_hdr, packet+sizeof(libnet_ethernet_hdr)+sizeof(libnet_ipv4_hdr), sizeof(libnet_tcp_hdr));
 
         print_ethernet(ethernet_hdr);
+        if (ethernet_hdr.ether_type != ETHERTYPE_IP) {
+            printf("Not ipv4.\n");
+            return 0;
+        }
         print_ipv4(ipv4_hdr);
+        if (ipv4_hdr.ip_p != IPPROTO_TCP) {
+            printf("Not tcp\n");
+            return 0;
+        }
         print_tcp(tcp_hdr);
+        print_data(packet+sizeof(libnet_ethernet_hdr)+sizeof(libnet_ipv4_hdr)+sizeof(libnet_tcp_hdr));
     }
 
     pcap_close(handle);
